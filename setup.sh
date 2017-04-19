@@ -131,15 +131,13 @@ Use theVHostComb forum.gentoo.tw /var/www/vhost/forum.gentoo.tw/httpdocs service
 Use theVHostComb wiki.gentoo.tw  /var/www/vhost/wiki.gentoo.tw/httpdocs  service@gentoo.tw
 EOF
 
-	hide_files=""
-	hide_files="$hide_files /etc/apache2/vhosts.d/00_default_ssl_vhost.conf"
-	hide_files="$hide_files //etc/apache2/vhosts.d/00_default_vhost.conf"
+    [ -e "/run/apache_ssl_mutex" ] || { install -d "/run/apache_ssl_mutex"; }
 
-	for ff in $hide_files; do
-	    if [ -e "$ff" ] ; then 
-	        mv -v ${ff}{,.bak}
-	    fi
-	done
+    extra_opts="-D MACRO -D PHP -D PROXY"
+    cat /etc/conf.d/apache2  | grep -e '^\s*APACHE2_OPTS' | grep -e "$extra_opts"
+    if [ $? -ne 0 ]; then
+        sed -i /etc/conf.d/apache2 -e "s/\(^\s*APACHE2_OPTS.*\)\(\"\s*\)$/\1 $extra_opts \2/g"
+    fi
 }
 
 function cmd_make_letsencrypt(){ # 取得 Let's Encrypt 憑證
