@@ -16,6 +16,8 @@ www-servers/apache[threads]
 dev-db/mariadb
 dev-lang/php[cgi,curl,fpm,gd,mysql,mysqli,sqlite,truetype,zip]
 sys-apps/systemd
+net-misc/openssh
+dev-vcs/git
 EOF
 
 [ -e /etc/portage/env ] || install -d /etc/portage/env
@@ -207,6 +209,13 @@ function setup_phpmyadmin(){
 function setup_timezone(){
     echo "Asia/Taipei" > /etc/timezone 
     ln -sf /usr/share/zoneinfo/`cat /etc/timezone` /etc/localtime 
+}
+
+function setup_service(){
+    systemctl enable sshd
+    systemctl enable apache2
+    systemctl enable mysqld
+    systemctl enable php-fpm@7.0
 }
 
 setup_system
