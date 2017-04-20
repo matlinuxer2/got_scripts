@@ -67,18 +67,15 @@ fi
 function setup_apache(){
 cat <<EOF > /etc/apache2/modules.d/99_got.conf
 ServerName localhost
-
-<Location /server-info>
-SetHandler server-info
-Require all granted
-</Location>
+Listen 80
+Listen 443
 
 Alias /phpmyadmin /usr/share/phpmyadmin
 <Directory /usr/share/phpmyadmin>
-	Options Indexes FollowSymLinks
-	AllowOverride All
-	Require all granted
-	DirectoryIndex index.php
+    Options Indexes FollowSymLinks
+    AllowOverride All
+    Require all granted
+    DirectoryIndex index.php
 </Directory>
 
 <IfModule http2_module>
@@ -100,8 +97,8 @@ cat <<EOF > /etc/apache2/vhosts.d/99_www.gentoo.tw.conf
         <Directory \$docroot>
                 Options Indexes FollowSymLinks
                 AllowOverride All
-		Require all granted
-		DirectoryIndex index.html index.php
+                Require all granted
+                DirectoryIndex index.html index.php
         </Directory>
 
         ErrorLog /var/log/apache2/error-\$name.log
@@ -112,20 +109,16 @@ cat <<EOF > /etc/apache2/vhosts.d/99_www.gentoo.tw.conf
         </IfModule>
 </macro>
 <macro theVHostComb \$name \$docroot \$admin>
-	<VirtualHost *:80>
-		Use theVHost \$name \$docroot \$admin
-	</VirtualHost>
-	#<VirtualHost *:443>
-	#	Use theVHost \$name \$docroot \$admin
-	#	SSLEngine on
-	#	SSLCertificateFile    /etc/ssl/certs/ssl-cert-\$name.pem
-	#	SSLCertificateKeyFile /etc/ssl/private/ssl-cert-\$name.key
-	#</VirtualHost>
+    <VirtualHost *:80>
+        Use theVHost \$name \$docroot \$admin
+    </VirtualHost>
+    #<VirtualHost *:443>
+    #    Use theVHost \$name \$docroot \$admin
+    #    SSLEngine on
+    #    SSLCertificateFile    /etc/ssl/certs/ssl-cert-\$name.pem
+    #    SSLCertificateKeyFile /etc/ssl/private/ssl-cert-\$name.key
+    #</VirtualHost>
 </macro>
-
-ServerName localhost
-Listen 80
-Listen 443
 
 Use theVHostComb localhost       /var/www/localhost/htdocs               root@localhost
 Use theVHostComb www.gentoo.tw   /var/www/vhost/www.gentoo.tw/httpdocs   service@gentoo.tw
@@ -140,6 +133,19 @@ EOF
     if [ $? -ne 0 ]; then
         sed -i /etc/conf.d/apache2 -e "s/\(^\s*APACHE2_OPTS.*\)\(\"\s*\)$/\1 $extra_opts \2/g"
     fi
+
+    httpdocs_dirs=""
+    httpdocs_dirs="$httpdocs_dirs /var/www/vhost/www.gentoo.tw/httpdocs"
+    httpdocs_dirs="$httpdocs_dirs /var/www/vhost/forum.gentoo.tw/httpdocs"
+    httpdocs_dirs="$httpdocs_dirs /var/www/vhost/wiki.gentoo.tw/httpdocs"
+    for ff in $httpdocs_dirs
+    do
+
+        [ -e "$ff" ] || {
+            install -d "$ff"
+            chown nobody:apache "$ff"
+        }
+    done
 }
 
 function cmd_make_letsencrypt(){ # 取得 Let's Encrypt 憑證
@@ -198,17 +204,17 @@ EOD
 }
 
 function setup_phpmyadmin(){
-	src_url="https://www.adminer.org/latest.php"
+    src_url="https://www.adminer.org/latest.php"
 
-	[ -d "/usr/share/phpmyadmin" ] || {
-		install -d "/usr/share/phpmyadmin"
-		curl -s -L $src_url > "/usr/share/phpmyadmin/index.php"
-	}
+    [ -d "/usr/share/phpmyadmin" ] || {
+        install -d "/usr/share/phpmyadmin"
+        curl -s -L $src_url > "/usr/share/phpmyadmin/index.php"
+    }
 }
 
 function setup_timezone(){
-    echo "Asia/Taipei" > /etc/timezone 
-    ln -sf /usr/share/zoneinfo/`cat /etc/timezone` /etc/localtime 
+    echo "Asia/Taipei" > /etc/timezone
+    ln -sf /usr/share/zoneinfo/`cat /etc/timezone` /etc/localtime
 }
 
 function setup_service(){
@@ -223,3 +229,4 @@ setup_mysql
 setup_apache
 setup_phpmyadmin
 setup_timezone
+setup_service
